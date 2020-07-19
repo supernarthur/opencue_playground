@@ -20,7 +20,7 @@ on the official website.
 
 Here are the steps :
 
-- Clone the repo
+- [Clone the repo](https://www.opencue.io/docs/getting-started/checking-out-the-source-code/)
 - [Install the libraries](https://www.opencue.io/docs/getting-started/installing-pycue-and-pyoutline/) (PyCue and PyOutline)
 - [Install CueGUI](https://www.opencue.io/docs/getting-started/installing-cuegui/)
 - [Install CueSubmit](https://www.opencue.io/docs/getting-started/installing-cuesubmit/) (optional, but a good way to test stuff)
