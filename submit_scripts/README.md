@@ -2,7 +2,7 @@
 
 Here you'll find libs and scripts to submit various jobs to opencue.
 
-You must have access to OpenCue client libraries to make them work. Check [this](https://github.com/Supernarthur/opencue_playground/README.md#setup-the-client-apps-and-libraries) to install them.
+You must have access to OpenCue client libraries to make them work. Check [this](https://github.com/Supernarthur/opencue_playground#setup-the-client-apps-and-libraries) to install them.
 
 ## Contents / Usage
 

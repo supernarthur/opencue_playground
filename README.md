@@ -11,7 +11,7 @@ Most of the tests have been ran using my mac as a client, with the infrastructur
 
 ### Setup the opencue intrastructure in docker
 
-See the appropriate documentation [here](https://github.com/Supernarthur/opencue_playground/docker_infra/README.md).
+See the appropriate documentation [here](https://github.com/Supernarthur/opencue_playground/tree/master/docker_infra).
 
 ### Setup the client apps and libraries
 
