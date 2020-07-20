@@ -3,7 +3,7 @@
 This is the result of a personal exploration of OpenCue as a rendering system to dispatch video-oriented
 jobs (compression and analysis using ffmpeg). 
 
-You can read my ramblings on why I worked on this and what I've learned in the appropriate section.
+You can [read my ramblings](https://github.com/Supernarthur/opencue_playground/tree/master/ramblings) on why I worked on this and what I've learned in the appropriate section.
 
 Most of the tests have been ran using my mac as a client, with the infrastructure running in docker.
 
