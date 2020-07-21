@@ -44,7 +44,7 @@ It was pretty cool to imaging batching dozens of compression jobs with different
 
 On the app side, I was half-sold on making up something with Flask. But the perspective of having to do some kind of front-end dev wasn't particularly driving. I was also reading about energy preservation, ecology, not buying too much stuff. I was wondering how to make an idea like this work on machines that you already have available in a post-production facility, like workstations.
 
-Than it hit me : just like VFX studios, I could do _all this_ with some kind of render manager. A bit of research and I fell on OpenCue. The idea matured into something like this :
+Then it hit me : just like VFX studios, I could do _all this_ with some kind of render manager. A bit of research and I fell on OpenCue. The idea matured into something like this :
 
 - Learn about how OpenCue work (if I hit a wall at some point, find something else).
 - Deploy some kind of testing infrastructure, if possible on my laptop. If I can learn a thing or two about Docker, that's a bonus.
