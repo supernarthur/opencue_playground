@@ -31,18 +31,21 @@ frame_range = "1"
 
 output_path = os.path.splitext(input_path)[0] + f"_H264_{crf}.mp4"
 
-makemov_layer = MakeMov(layer_name, input=input_path, output=output_path,
-                        chunk=chunk_size, threads=threads, range=frame_range,
-                        threadable=threadable, crf=crf)
+makemov_layer = MakeMov(layer_name, chunk=chunk_size, threads=threads,
+                        range=frame_range, threadable=threadable, crf=crf)
+makemov_layer.add_input("main", input_path)
+makemov_layer.add_output("main", output_path)
 
 outline.add_layer(makemov_layer)
 
 # Create the CheckMov Layer
 layer_name = "checkmov"
-checkmov_layer = CheckMov(layer_name, input=output_path, ref=input_path,
-                          chunk=chunk_size, threads=threads, range=frame_range,
-                          threadable=threadable)
+checkmov_layer = CheckMov(layer_name, chunk=chunk_size, threads=threads,
+                          range=frame_range, threadable=threadable)
+checkmov_layer.add_input("main", output_path)
+checkmov_layer.add_input("ref", input_path)
 checkmov_layer.depend_all(makemov_layer)
+
 outline.add_layer(checkmov_layer)
 
 # Submit job

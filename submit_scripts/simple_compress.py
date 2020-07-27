@@ -28,9 +28,10 @@ threadable = False
 frame_range = "1"
 output_path = os.path.splitext(input_path)[0] + "_H264.mp4"
 
-makemov_layer = MakeMov(layer_name, input=input_path, output=output_path,
-                        chunk=chunk_size, threads=threads, range=frame_range,
-                        threadable=threadable, crf=25)
+makemov_layer = MakeMov(layer_name, chunk=chunk_size, threads=threads,
+                        range=frame_range, threadable=threadable, crf=25)
+makemov_layer.add_input("main", input_path)
+makemov_layer.add_output("main", output_path)
 
 outline.add_layer(makemov_layer)
 

@@ -30,9 +30,10 @@ threads = 1.0
 threadable = False
 frame_range = "1"
 
-checkmov_layer = CheckMov(layer_name, input=input_path, ref=ref_path,
-                          chunk=chunk_size, threads=threads, range=frame_range,
-                          threadable=threadable)
+checkmov_layer = CheckMov(layer_name, chunk=chunk_size, threads=threads,
+                          range=frame_range, threadable=threadable)
+checkmov_layer.add_input("main", input_path)
+checkmov_layer.add_input("ref", ref_path)
 
 outline.add_layer(checkmov_layer)
 
