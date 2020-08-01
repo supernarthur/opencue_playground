@@ -6,3 +6,4 @@ Please note that English is not my main language, so I apologize in advance if t
 ## Contents
 
 - [Why did I started to tinker with this ?](https://github.com/Supernarthur/opencue_playground/blob/master/ramblings/0_why.md)
+- [Gettng familiar with the infrastructure](https://github.com/Supernarthur/opencue_playground/blob/master/ramblings/1_infra.md)
