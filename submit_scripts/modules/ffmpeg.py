@@ -8,9 +8,14 @@ from outline.layer import Layer, Frame
 __all__ = ["MakeMov",
            "CheckMov"]
 
-FFMPEG_CMD = ("ffmpeg -n -i {input} -c:v libx264 -pix_fmt yuv420p "
+MOV_CMD = ("ffmpeg -n -i {input} -c:v libx264 -pix_fmt yuv420p "
               "-preset faster -crf {crf} -c:a aac "
               "-movflags +faststart {output}")
+
+SEQTOMOV_CMD = ("ffmpeg -f image2 -framerate {framerate} "
+                "-start_number {start_f} -i {input} -to {end_s} "
+                "-c:v libx264 -pix_fmt yuv420p -preset faster "
+                "-crf {crf} -movflags +faststart {output}")
 
 VMAF_CMD = ("ffmpeg -i {input} -i {ref} -lavfi "
             "\"libvmaf=n_subsample=4:pool=perc10\" "
@@ -42,9 +47,9 @@ class MakeMov(Layer):
         output_path = [path for path in self.get_outputs().values()][0]
         input_path = [path for path in self.get_inputs().values()][0]
 
-        command = FFMPEG_CMD.format(input=input_path,
-                                    output=output_path,
-                                    crf=self.get_arg("crf")).split(" ")
+        command = MOV_CMD.format(input=input_path,
+                                 output=output_path,
+                                 crf=self.get_arg("crf")).split(" ")
         self.set_arg("command", command)
 
     def _execute(self, frame_set):
@@ -53,6 +58,50 @@ class MakeMov(Layer):
             since we execute over the whole mov)
         """
         self.system(self.get_arg("command"))
+
+
+class SeqToMov(Layer):
+    """
+    Provides a method to create a H.264 file from an image sequence
+    using the opencue framework
+    Requires :
+    - 1 input (has to be compatible with ffmpeg image2 demux,
+        e.g. using a %0Nd pattern)
+    - 1 output
+    - arg "fps"
+    - arg "crf" (H.264 quality)
+    """
+    def _setup(self):
+        """
+        Setup steps before execution
+        """
+        self.require_arg("fps")
+        self.require_arg("crf")
+
+        assert len(self.get_inputs()) == 1
+        assert len(self.get_outputs()) == 1
+
+        output_path = [path for path in self.get_outputs().values()][0]
+        input_path = [path for path in self.get_inputs().values()][0]
+
+        command = SEQTOMOV_CMD.format(input=input_path, output=output_path,
+                                      framerate=self.get_arg("fps"),
+                                      crf=self.get_arg("crf"),
+                                      start_f="#START_F#", end_s="#END_S#")
+        command = command.split()
+        self.set_arg("command", command)
+
+    def _execute(self, frame_set):
+        """
+        Execute the ffmpeg command over the frame set
+        """
+        command = self.get_arg("command")
+        start_f = frame_set.get(0)
+        end_s = round(len(frame_set) / self.get_arg("framerate"), 4)
+        replace = {"#START_F#": start_f,
+                   "#END_S#": end_s}
+        command = [replace.get(n, n) for n in command]
+        self.set_arg("command", command)
 
 
 class CheckMov(Layer):
