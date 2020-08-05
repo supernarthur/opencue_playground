@@ -2,7 +2,7 @@
 FROM opencue/rqd
 
 RUN yum -y update
-RUN yum -y install wget
+RUN yum -y install wget bc
 RUN yum clean all
 
 RUN wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz
