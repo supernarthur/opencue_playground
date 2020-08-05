@@ -9,11 +9,12 @@ __all__ = ["MakeMov",
            "CheckMov"]
 
 MOV_CMD = ("ffmpeg -n -i {input} -c:v libx264 -pix_fmt yuv420p "
-              "-preset faster -crf {crf} -c:a aac "
-              "-movflags +faststart {output}")
+           "-preset faster -crf {crf} -c:a aac "
+           "-movflags +faststart {output}")
 
 SEQTOMOV_CMD = ("ffmpeg -f image2 -framerate {framerate} "
-                "-start_number {start_f} -i {input} -to {end_s} "
+                "-start_number #IFRAME# -i {input} "
+                "-to $(echo \"scale=4;#FRAME_CHUNK#/{framerate}\"| bc) "
                 "-c:v libx264 -pix_fmt yuv420p -preset faster "
                 "-crf {crf} -movflags +faststart {output}")
 
@@ -70,6 +71,8 @@ class SeqToMov(Layer):
     - 1 output
     - arg "fps"
     - arg "crf" (H.264 quality)
+    - arg "crstart_framef" the index of the first frame that
+        would replace the %0Nd in the input path
     """
     def _setup(self):
         """
@@ -77,6 +80,7 @@ class SeqToMov(Layer):
         """
         self.require_arg("fps")
         self.require_arg("crf")
+        self.require_arg("start_frame")
 
         assert len(self.get_inputs()) == 1
         assert len(self.get_outputs()) == 1
@@ -86,8 +90,7 @@ class SeqToMov(Layer):
 
         command = SEQTOMOV_CMD.format(input=input_path, output=output_path,
                                       framerate=self.get_arg("fps"),
-                                      crf=self.get_arg("crf"),
-                                      start_f="#START_F#", end_s="#END_S#")
+                                      crf=self.get_arg("crf"))
         command = command.split()
         self.set_arg("command", command)
 
@@ -95,13 +98,7 @@ class SeqToMov(Layer):
         """
         Execute the ffmpeg command over the frame set
         """
-        command = self.get_arg("command")
-        start_f = frame_set.get(0)
-        end_s = round(len(frame_set) / self.get_arg("framerate"), 4)
-        replace = {"#START_F#": start_f,
-                   "#END_S#": end_s}
-        command = [replace.get(n, n) for n in command]
-        self.set_arg("command", command)
+        self.system(self.get_arg("command"))
 
 
 class CheckMov(Layer):
