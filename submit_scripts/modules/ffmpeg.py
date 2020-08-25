@@ -3,6 +3,7 @@ ffmpeg.py
 ffmpeg module for opencue/pyoutline
 """
 
+import os
 from outline.layer import Layer, Frame
 
 __all__ = ["MakeMov",
@@ -12,7 +13,7 @@ MOV_CMD = ("ffmpeg -n -i {input} -c:v libx264 -pix_fmt yuv420p "
            "-preset faster -crf {crf} -c:a aac "
            "-movflags +faststart {output}")
 
-SEQTOMOV_CMD = ("ffmpeg -f image2 -framerate {framerate} "
+SEQTOMOV_CMD = ("ffmpeg -n -f image2 -framerate {framerate} "
                 "-start_number #IFRAME# -i {input} "
                 "-to $(echo \"scale=4;#FRAME_CHUNK#/{framerate}\"| bc) "
                 "-c:v libx264 -pix_fmt yuv420p -preset faster "
@@ -152,17 +153,15 @@ class ConcatMov(Layer):
         assert len(self.get_outputs()) == 1
 
         output_path = [path for path in self.get_outputs().values()][0]
+        input_dir = [os.path.split(str(path))[0]
+                     for path in self.get_outputs().values()][0]
+        concat_cfg = os.path.join(input_dir, self.get_name() + "_concat.txt")
+        with open(concat_cfg, "w") as fd:
+            for path in self.get_inputs().values():
+                clean_path = str(path).split("'")[1]
+                fd.write(f"file {clean_path}\n")
 
-        tmp = self.get_temp_dir()
-        self.set_arg("concat_cfg",
-                     os.path.join(tmp, self.name + "_concat.txt"))
-
-        with open(self.get_arg("concat_cfg")) as fd:
-            inputs_sorted = sorted(self.get_inputs().items())
-            for _, path in inputs_sorted:
-                fd.write(f"file {path}\n")
-
-        command = CONCAT_CMD.format(concat_cfg=self.get_arg("concat_cfg"),
+        command = CONCAT_CMD.format(concat_cfg=concat_cfg,
                                     output=output_path).split()
         self.set_arg("command", command)
 
@@ -172,3 +171,9 @@ class ConcatMov(Layer):
             since we execute over the whole mov)
         """
         self.system(self.get_arg("command"))
+
+    def _after_execute(self):
+        """
+        Cleanup of the config file
+        """
+        # os.remove(self.get_arg("concat_cfg"))

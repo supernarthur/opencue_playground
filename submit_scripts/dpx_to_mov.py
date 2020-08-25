@@ -10,7 +10,7 @@ import sys
 import getpass
 import datetime
 import argparse
-from modules.ffmpeg import SeqToMov
+from modules.ffmpeg import SeqToMov, ConcatMov
 from outline import Outline, cuerun
 
 
@@ -22,15 +22,15 @@ def get_args():
     parser.add_argument("input_path", type=str,
                         help=("path to the input image sequence "
                               "(first frame)"))
-    parser.add_argument("-f", "--fps", type=int, metavar="fps", default=25,
+    parser.add_argument("-f", "--fps", type=float, metavar="fps", default=25,
                         help="framerate of the desired output")
     parser.add_argument("-q", "--crf", type=int, metavar="crf", default=25,
                         help="quality of the output (see ffmpeg/x264 crf)")
     parser.add_argument("-c", "--chunk", type=int, metavar="chunk",
                         default=600,
                         help="size in frames of the render chunks")
-    parser.add_argument("-o", "--output", type=str, metavar="output_path",
-                        default="", help="The path to the output file")
+    parser.add_argument("-o", "--output", type=str,
+                        help="The path to the output file")
     return parser.parse_args()
 
 
@@ -50,10 +50,10 @@ def translate_imgseq_ffmpeg(path):
     return path
 
 
-def create_chunk_filename(path):
+def create_chunk_path_template(path):
     """
     Converts an image sequence file path to one suitable
-    for a chunk
+    for a chunk file being processed by cuebot
     :path: str - path to one frame of the img seq
     :return: str - path to the chunk file
     """
@@ -67,11 +67,26 @@ def create_chunk_filename(path):
     return path + "_#IFRAME#.mp4"
 
 
+def get_chunk_paths(chunk_path_template, chunk, frame_start, frame_end):
+    """
+    Gets a list of the actual chunks paths created by opencue for later
+    combination
+    :chunk_path_template: str - path given to cuebot (with #IFRAME#)
+    :chunk: int - chunk length in frames
+    :frame_start: str - first frame of the img seq
+    :frame_end: str - last frame of the img seq
+    """
+    index_length = len(frame_start)
+    return [chunk_path_template.replace("#IFRAME#", str(chunk_start))
+            for chunk_start in range(int(frame_start), int(frame_end), chunk)]
+
+
 def get_imgseq_framerange(path):
     """
     Deduces the framerange of the given image sequence
     :path: str - path to one frame of the img seq
-    :return: tuple of int - (start, end)
+    :return: tuple of str - (start, end)
+        we stay in str to avoid losing zfilled indexes
     """
     dir_name, file_name = os.path.split(path)
     for i in range(8, 0, -2):
@@ -83,10 +98,18 @@ def get_imgseq_framerange(path):
             indexes = [regex_index.search(file)[0]       # Only indexes
                        for file in os.listdir(dir_name)  # For every file
                        if regex_file.match(file)]        # In the img seq
-            return int(min(indexes)), int(max(indexes))
+            return min(indexes), max(indexes)
 
 
-def main(input_path, fps, crf, chunk):
+def main(input_path, fps, crf, chunk, output_path):
+    """
+    Sends a job to opencue that will compress an image sequence to
+    an H.264 file using multiple render nodes in parallel
+    :input_path: str - path to the first frame of the image sequence
+    :fps: float - framerate of the desired encoded file
+    :crf: int - quality of the desired encoded file
+
+    """
     input_path = os.path.abspath(input_path)
     shot_name = os.path.basename(input_path)
     job_name = "dpx_to_mov"
@@ -99,18 +122,31 @@ def main(input_path, fps, crf, chunk):
     threads = 1.0
     threadable = False
     frame_start, frame_end = get_imgseq_framerange(input_path)
-    range_len = frame_end - frame_start
-    frame_range = str(frame_start) + "-" + str(frame_end)
+    range_len = int(frame_end) - int(frame_start)
+    frame_range = frame_start + "-" + frame_end
     input_path_ffmpeg = translate_imgseq_ffmpeg(input_path)
-    output_chunk_path = create_chunk_filename(input_path)
+    output_chunk_path_template = create_chunk_path_template(input_path)
 
     seqtomov_layer = SeqToMov(layer_name, chunk=chunk, threads=threads,
                               range=frame_range, threadable=threadable,
                               crf=crf, fps=fps)
     seqtomov_layer.add_input("main", input_path_ffmpeg)
-    seqtomov_layer.add_output("main", output_chunk_path)
+    seqtomov_layer.add_output("main", output_chunk_path_template)
 
     outline.add_layer(seqtomov_layer)
+
+    # Create the ConcatMov Layer
+    layer_name = "concat_mov"
+    concatmov_layer = ConcatMov(layer_name, chunk=1, threads=threads,
+                                range=1, threadable=threadable)
+    chunk_paths = get_chunk_paths(output_chunk_path_template,
+                                  chunk, frame_start, frame_end)
+    for chunk_path in enumerate(chunk_paths):
+        concatmov_layer.add_input("", chunk_path)
+    concatmov_layer.add_output("main", output_path)
+    concatmov_layer.depend_all(seqtomov_layer)
+
+    outline.add_layer(concatmov_layer)
 
     # Submit job
     cuerun.launch(outline, use_pycuerun=False)
@@ -118,4 +154,4 @@ def main(input_path, fps, crf, chunk):
 
 if __name__ == '__main__':
     args = get_args()
-    main(args.input_path, args.fps, args.crf, args.chunk)
+    main(args.input_path, args.fps, args.crf, args.chunk, args.output)
